@@ -1312,6 +1312,23 @@ Intervals:     ${intervalsStr}
         browserDownload(midiBlobGlobal, "k_random_music.mid")
         browserDownload(new Blob([txtContent], {type:"text/plain"}), "k_random_music.txt")
     }
+
+    const gecoContent =
+`K-random — Generation Parameters
+==================================
+Start Note:    ${startNote}
+Sequence:      Multidimensional ${intervalsStr}
+Tempo:         ${tempoDetail}
+Harmony:       none
+`
+
+    if(IS_CAPACITOR){
+        saveAndShareOnAndroid(midiBlobGlobal, txtContent, gecoContent)
+    } else {
+        browserDownload(midiBlobGlobal, "k_random_music.mid")
+        browserDownload(new Blob([txtContent], {type:"text/plain"}), "k_random_music.txt")
+        browserDownload(new Blob([gecoContent], {type:"text/plain"}), "k_random_GeCo.txt")
+    }
 }
 
 function browserDownload(blob, filename){
@@ -1322,22 +1339,25 @@ function browserDownload(blob, filename){
     document.body.removeChild(a); URL.revokeObjectURL(url)
 }
 
-async function saveAndShareOnAndroid(midiBlob, txtContent){
+async function saveAndShareOnAndroid(midiBlob, txtContent, gecoContent){
     const { Filesystem, Share } = Capacitor.Plugins
 
-    const midiBase64 = await blobToBase64(midiBlob)
-    const txtBase64  = btoa(unescape(encodeURIComponent(txtContent)))
+    const midiBase64  = await blobToBase64(midiBlob)
+    const txtBase64   = btoa(unescape(encodeURIComponent(txtContent)))
+    const gecoBase64  = btoa(unescape(encodeURIComponent(gecoContent)))
 
     await Filesystem.writeFile({ path: "k_random_music.mid", data: midiBase64,  directory: "CACHE" })
     await Filesystem.writeFile({ path: "k_random_music.txt", data: txtBase64,   directory: "CACHE" })
+    await Filesystem.writeFile({ path: "k_random_GeCo.txt",  data: gecoBase64,  directory: "CACHE" })
 
-    const { uri: uriMid } = await Filesystem.getUri({ path: "k_random_music.mid", directory: "CACHE" })
-    const { uri: uriTxt } = await Filesystem.getUri({ path: "k_random_music.txt", directory: "CACHE" })
+    const { uri: uriMid  } = await Filesystem.getUri({ path: "k_random_music.mid", directory: "CACHE" })
+    const { uri: uriTxt  } = await Filesystem.getUri({ path: "k_random_music.txt", directory: "CACHE" })
+    const { uri: uriGeco } = await Filesystem.getUri({ path: "k_random_GeCo.txt",  directory: "CACHE" })
 
     await Share.share({
         title:       "K-random export",
         dialogTitle: "Save or open files",
-        files:       [uriMid, uriTxt]
+        files:       [uriMid, uriTxt, uriGeco]
     })
 }
 
