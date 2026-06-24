@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>K-random: a GeCo-Tool add-on</title>
+
+<script src="https://unpkg.com/tone"></script>
+<script src="https://unpkg.com/@tonejs/midi"></script>
+<script src="https://unpkg.com/soundfont-player/dist/soundfont-player.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay/build/opensheetmusicdisplay.min.js"></script>
+
+<style>
+
+    body{
+        font-family:Arial;
+        background:#f4f6f8;
+        /*position:fixed;*/
+        top:0;
+        left:0;
+        width:100%;
+        background:#3498db;
+        text-align:center;
+        padding:10px;
+        z-index:9999;
+        font-weight:bold;
+    }
+
+.container{
+    width:1200px;
+    margin:30px auto;
+    background:white;
+    padding:25px;
+    border-radius:10px;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border:none;
+    border-radius:8px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+/* Play + Stop affiancati */
+.button-row{
+    display:flex;
+    gap:10px;
+}
+
+.button-row button{
+    flex:1;
+}
+
+/* Reset rosso */
+.reset-btn{
+    width:120px;
+    background-color:#e74c3c;
+    margin-top:10px;
+}
+
+.reset-btn:hover{
+    background-color:#c0392b;
+}
+
+#score{
+    margin-top:30px;
+    border:1px solid #ccc;
+    padding:10px;
+    overflow:hidden;
+}
+
+</style>
+
+<style>
+    .back-btn {
+    position: fixed;
+    top: 5px;
+    left: 20px;
+    background: #b429b9;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    z-index: 10000;
+}
+    .back-btn:hover { background: #1a6a9a; }
+</style>
+
+<style>
+/* ── Pitch-Class Circle ── */
+#pcCircleWrap {
+    position: absolute;
+    top: 80px;
+    left: 10px;
+    width: 260px;
+    height: 260px;
+}
+#pcCircle {
+    overflow: visible;
+}
+
+.transformation-box {
+    border: 2px solid #ccc;
+    background-color: #ccc;
+    border-radius: 8px;
+    padding: 10px 12px 12px;
+    display: inline-block;
+    margin-top: 6px;   
+}
+
+.transformation-box .label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.operator-row button {
+    margin-right: 5px;
+}
+
+.operator-row button:last-child {
+    margin-right: 0;
+}
+    .operator-row {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .operator-row button {
+        width: 60px;
+        padding: 6px 8px;
+        background-color: #4444ff;
+        border: 1px solid #5555ff;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .operator-row button:hover {
+        background-color: #eed890;
+    }
+
+.rythm_transformation-box {
+    border: 2px solid #caa;
+    background-color: #fcc;
+    border-radius: 8px;
+    padding: 10px 12px 12px;
+    display: inline-block;
+    margin-top: 6px;   
+    margin-left: 10px;
+}
+
+.rythm_transformation-box .label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.operator2-row button {
+    margin-right: 5px;
+}
+
+.operator2-row button:last-child {
+    margin-right: 0;
+}
+    .operator2-row {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .operator2-row button {
+        width: 60px;
+        padding: 6px 8px;
+        background-color: #aa00ff;
+        border: 1px solid #9900ff;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .operator2-row button:hover {
+        background-color: #eed890;
+    }
+</style>
+
+<style>
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background-color: #ddd;
+        color: #666;
+    }
+</style>
+
+<style>
+/* ── Help Button ── */
+#helpBtn {
+    position: fixed;
+    top: 45px;
+    left: 20px;
+    width: auto;
+    padding: 7px 18px;
+    margin: 0;
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 11000;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+#helpBtn:hover { background: #d68910; opacity: 1; }
+
+/* ── Help Modal Overlay ── */
+#helpModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.55);
+    z-index: 50000;
+    overflow-y: auto;
+}
+#helpModal .modal-box {
+    background: #fff;
+    margin: 40px auto;
+    max-width: 760px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    padding: 0 0 10px 0;
+    font-family: Arial, sans-serif;
+    color: #222;
+}
+#helpModal .modal-close-bar {
+    background: #f39c12;
+    border-radius: 12px 12px 0 0;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+#helpModal .modal-close-bar-bottom {
+    background: #f4f6f8;
+    border-radius: 0 0 12px 12px;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid #ddd;
+}
+#helpModal .close-btn {
+    width: auto;
+    padding: 6px 22px;
+    margin: 0;
+    background: #fff;
+    color: #c0392b;
+    border: 2px solid #c0392b;
+    border-radius: 7px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+}
+#helpModal .close-btn:hover { background: #c0392b; color: #fff; opacity: 1; }
+#helpModal .modal-content {
+    padding: 22px 30px 10px 30px;
+    line-height: 1.65;
+    font-size: 14px;
+}
+#helpModal h2 {
+    color: #2980b9;
+    margin-top: 0;
+    font-size: 20px;
+}
+#helpModal h3 {
+    color: #d35400;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    font-size: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+}
+#helpModal ul {
+    margin: 6px 0 10px 20px;
+    padding: 0;
+}
+#helpModal li { margin-bottom: 5px; }
+#helpModal code {
+    background: #eaf2ff;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 13px;
+    color: #1a5276;
+}
+</style>
+
+<style>
+/* Caselle intervalli generati — stile np-fake-input readonly */
+.gen-interval-box {
+    display: inline-block;
+    min-width: 38px;
+    height: 22px;
+    line-height: 22px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    background: #f0f6ff;
+    text-align: center;
+    font-size: 13px;
+    font-family: monospace;
+    color: #2471a3;
+    font-weight: bold;
+    cursor: default;
+    user-select: none;
+    box-sizing: border-box;
+    padding: 0 4px;
+}
+</style>
+
+</head>
+
+<body>
+
+
+
+<!-- ── Help Button ── -->
+<button id="helpBtn" onclick="document.getElementById('helpModal').style.display='block'">❓ Help</button>
+
+<!-- ── Help Modal ── -->
+<div id="helpModal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box">
+
+    <div class="modal-close-bar">
+      <button class="close-btn" onclick="document.getElementById('helpModal').style.display='none'">✕ Close</button>
+    </div>
+
+    <div class="modal-content">
+      <h2>K-random — User Guide</h2>
+      <p>
+        <strong>K-random</strong> is a generative composition tool that produces short melodic sequences
+        using controlled randomness over pitch-class sets. Each sequence is delivered as audio (playback)
+        and as standard music notation, and can be exported as a MIDI file.
+      </p>
+
+      <h3>🎵 Generation Parameters</h3>
+      <ul>
+        <li><strong>Start Note</strong> — The pitch-class on which the sequence begins (C through B).
+            Octave is assigned automatically: C–F♯ start in octave 4, G–B in octave 3.</li>
+        <li><strong>K (number of notes)</strong> — How many notes the sequence contains (2–12).
+            With <em>Repeated</em> unchecked, K cannot exceed 12 (the full chromatic set).</li>
+        <li><strong>Repeated</strong> — When checked, the same pitch-class may appear more than once in the sequence.
+            When unchecked, each pitch-class is used at most once.</li>
+      </ul>
+
+      <h3>⏱ Rhythm</h3>
+      <ul>
+        <li><strong>Tempo mode</strong>
+          <ul>
+            <li><code>constant</code> — Every note shares the same duration (chosen below).</li>
+            <li><code>length-constrained</code> — Duration changes every N notes, where N is drawn randomly from {2, 3, 5, 6}.</li>
+            <li><code>free</code> — Each note receives an independent random duration.</li>
+          </ul>
+        </li>
+        <li><strong>Note Length</strong> — Available when Tempo = <em>constant</em>. Sets the shared duration:
+            Whole (4 beats), Half (2), Quarter (1), Eighth (½), Sixteenth (¼).</li>
+        <li><strong>Allow Triplets / Triplet probability</strong> — When enabled, notes may be grouped
+            as triplets with the probability set by the slider (0–100 %).</li>
+      </ul>
+
+      <h3>🎹 Instrument &amp; Playback</h3>
+      <ul>
+        <li><strong>Instrument</strong> — Choose between <em>Piano</em> and <em>Sax B♭</em> soundfonts for in-browser playback.</li>
+        <li><strong>BPM slider</strong> (top right) — Controls playback speed (60–240 BPM). Does <em>not</em> alter the MIDI file.</li>
+        <li><strong>Play / Pause / Stop</strong> — Standard transport controls. <em>Pause</em> freezes playback; press again (<em>Continue</em>) to resume.</li>
+        <li><strong>Loop</strong> — When checked, playback restarts automatically at the end of the sequence.</li>
+        <li><strong>Metronome</strong> — Adds a click track during playback. Three click sounds: DAW (noise burst), Beep (sine tone), Wood block.</li>
+      </ul>
+
+      <h3>🔄 Pitch-Class Transformations</h3>
+      <p>Applied to the current sequence after generation. Each operation contacts the server and re-renders the notation.</p>
+      <ul>
+        <li><strong>T — Transpose</strong> — Shifts all pitches by the chosen number of semitones (−12 to +12).</li>
+        <li><strong>I — Inversion</strong> — Reflects each interval around the first pitch (rising becomes falling).</li>
+        <li><strong>R — Retrograde</strong> — Reverses the order of pitches.</li>
+        <li><strong>RI — Retrograde-Inversion</strong> — Applies I then R; one of the four classical serial operations.</li>
+      </ul>
+
+      <h3>🥁 Rhythmic Transformations</h3>
+      <ul>
+        <li><strong>S+ — Shift forward</strong> — Cyclically advances the duration pattern by two positions.</li>
+        <li><strong>S− — Shift backward</strong> — Cyclically retards the duration pattern by two positions.</li>
+        <li><strong>I — Rhythmic Inversion</strong> — Ranks durations and swaps each with its complementary rank (long ↔ short).</li>
+        <li><strong>R — Rhythmic Retrograde</strong> — Reverses the sequence of durations while keeping pitches unchanged.</li>
+      </ul>
+
+      <h3>💾 MIDI</h3>
+      <ul>
+        <li><strong>Download MIDI</strong> — Saves the current sequence as a standard <code>.mid</code> file,
+            ready to import into any DAW or notation software.</li>
+        <li><strong>Import MIDI</strong> — Loads an external MIDI file into the tool, making all
+            transformations available. The sequence type and tempo of the file should match the current settings, but 
+            a <code>.txt</code> file containing the proper settings can also be loaded. For compatibility reasons a <code>GeCo-Tool</code> 
+            exported <code>.txt</code> file alone can also be imported (for example, scales 🎹)</li>
+      </ul>
+
+      <h3>🔵 Pitch-Class Circle</h3>
+      <p>
+        The animated circle (top left) visualises the chromatic scale as a clock-face. During playback,
+        active notes light up in gold and arcs trace the melodic intervals traversed. The first arc
+        (sequence start) and the last arc are highlighted in white.
+      </p>
+
+      <h3>📐 Generated Intervals</h3>
+      <p>
+        After generation, a row of coloured boxes shows the signed semitone interval between each
+        consecutive pair of notes (<code>+n</code> = ascending, <code>−n</code> = descending).
+      </p>
+
+      <h3>🔁 Reset</h3>
+      <p>Restores all parameters to their defaults and clears the score. The page reloads completely.</p>
+
+      <h3>ℹ️ Contextual Help</h3>
+      <p>
+        Hover over (or tab-focus) any control to see a short description in the <em>help strip</em>
+        at the bottom of the panel.
+      </p>
+    </div>
+
+    <div class="modal-close-bar-bottom">
+      <button class="close-btn" onclick="document.getElementById('helpModal').style.display='none'">✕ Close</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="loadingOverlay" style="
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    color:white;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    z-index:20000;
+">
+    ⏳ Generating... please wait
+</div>
+
+<!-- 🎚 BPM CONTROL -->
+<div id="bpmControl" style="
+    position:fixed;
+    top:20px;
+    right:60px;
+    background:white;
+    padding:10px 15px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2);
+    z-index:10000;
+">
+    <label><b>BPM:</b> <span id="bpmValue">100</span></label><br>
+    <input type="range" id="bpmSlider" min="60" max="240" value="100" data-help="Playback tempo in beats per minute (60–240). Does not affect the generated MIDI file, only the in-browser playback speed.">
+</div>
+
+<div class="container" style="position:relative;">
+
+    <!-- <a class="back-btn" href="#" onclick="window.close(); return false;">← Back to GeCo-Tools</a> -->
+    <a class="back-btn" href="GeCo-Tools.html">← Back to GeCo-Tools</a>
+
+    <!-- Pitch-Class Circle -->
+    <div id="pcCircleWrap">
+        <svg id="pcCircle" width="260" height="260" viewBox="-110 -110 220 220"></svg>
+    </div>
+
+<!-- <h2>Generative Composition</h2> -->
+<h1 class="titolo">
+    <span>K-random</span>
+    <img src="penta.png" width="140" align="center" alt="Logo">
+  </h1>
+
+<label>Start Note</label>
+<select id="startNote" data-help="The pitch-class on which the sequence begins. The actual octave is assigned automatically (C–F# start in octave 4, G–B in octave 3).">
+<option value="0">C</option>
+<option value="1">C#</option>
+<option value="2">D</option>
+<option value="3">Eb</option>
+<option value="4">E</option>
+<option value="5">F</option>
+<option value="6">F#</option>
+<option value="7">G</option>
+<option value="8">Ab</option>
+<option value="9">A</option>
+<option value="10">Bb</option>
+<option value="11">B</option>
+</select>
+
+<label>K (number of notes)</label>
+<select id="kValue" data-help="Number of notes in the generated sequence. Choose between 2 and 12.">
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6" selected>6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option>
+</select>
+
+<br><br>
+
+<label>Tempo</label>
+<select id="tempo" data-help="Rhythm mode. length-constrained: duration changes every N notes (N random from {2,3,5,6}). constant: all notes equal (choose below). free: each note gets an independent random duration.">
+<option value="length-constrained">length-constrained</option>
+<option value="constant" selected>constant</option>
+<option value="free">free</option>
+</select>
+
+<br><br>
+
+
+<div id="constantOptions" style="display:block;">
+<label>Note Length</label>
+<select id="noteLength" data-help="Duration assigned to every note when Tempo = constant. From whole note (4 beats) down to sixteenth (¼ beat).">
+<option value="4">Whole (4 beats)</option>
+<option value="2">Half (2 beats)</option>
+<option value="1">Quarter (1 beat)</option>
+<option value="0.5">Eighth (1/2 beat)</option>
+<option value="0.25">Sixteenth (1/4 beat)</option>
+</select>
+
+<br><br>
+
+<label>
+    <input type="checkbox" id="allowTriplets">
+    Allow triplets
+</label>
+
+<div id="tripletOptions" style="display:none; margin-top:10px;">
+    <label>
+        Triplet probability:
+        <span id="pTripletValue">0</span>%
+    </label>
+
+    <input type="range"
+           id="pTriplet"
+           min="0"
+           max="100"
+           value="0"
+           step="5"
+           style="width:200px; margin-top:4px;"
+           oninput="document.getElementById('pTripletValue').textContent = this.value">
+</div>
+
+</div>
+
+<br><br>
+
+<label>
+<input type="checkbox" id="Repeated" data-help="Checked allow notes to be repeated in the sequence.">
+Repeated
+<span id="octaveLabel" style="margin-left:10px; color:#555;">
+(without repetitions)
+</span>
+</label>
+
+<br>
+
+<style>
+    .testo_interval {
+      height: 30px;
+      position: absolute;
+      top: 200px;
+      right: 50px;
+      color: yellow;
+      background-color: rgb(36, 13, 240);
+      padding: 5px 25px;
+    }
+    </style>
+
+
+
+<!-- Riga: Metronome -->
+<label style="margin-top:8px; display:inline-block;">
+    <input type="checkbox" id="metronome" data-help="When enabled, a metronome click will sound during playback at the current BPM.">
+    Metronome
+</label>
+<span style="margin-left:8px; font-size:13px; vertical-align:middle;" title="Metronome volume">🔊</span>
+<input type="range" id="metronomeVolume" min="0" max="100" value="80" step="1"
+    style="margin-left:4px; width:70px; vertical-align:middle;"
+    data-help="Metronome volume (0 = silent, 100 = full volume).">
+<span id="metronomeVolumeLabel" style="margin-left:4px; font-size:12px; color:#555;">80%</span>
+<script>
+    document.getElementById('metronomeVolume').addEventListener('input', function(){
+        document.getElementById('metronomeVolumeLabel').textContent = this.value + '%'
+    })
+</script>
+<select id="metronomeSound" style="margin-left:8px; font-size:13px; padding:2px 6px; border-radius:5px; border:1px solid #aaa;"
+    data-help="Metronome click sound. DAW: short white noise burst. Beep: sine tone. Wood: wooden stick click.">
+    <option value="noise">DAW (noise)</option>
+    <option value="beep">Beep (sine)</option>
+    <option value="wood">Wood block</option>
+</select>
+
+<br>
+
+<!-- ── Instrument box ── -->
+<div style="display:inline-block; border:2px solid #b0c4de; background:#eaf2ff; border-radius:8px; padding:7px 16px; margin-top:8px;">
+    <span style="font-weight:bold; font-size:13px; margin-right:12px;">Instrument</span>
+    <label style="margin-right:12px; font-size:13px; cursor:pointer;">
+        <input type="radio" name="instrumentMode" id="instrPiano" value="piano" checked style="width:auto; margin-right:4px;">
+        Piano
+    </label>
+    <label style="font-size:13px; cursor:pointer;">
+        <input type="radio" name="instrumentMode" id="instrSaxBb" value="saxBb" style="width:auto; margin-right:4px;">
+        Sax Bb
+    </label>
+</div>
+
+<br>
+
+<button onclick="generateMusic()" data-help="Sends the current parameters to the server and generates a new sequence. The result is displayed as notation and loaded for playback and download.">Generate</button>
+
+<!-- pitch transformation  -->
+<div class="transformation-box">
+    <div class="label">Pitch-Class Transformations</div>
+    
+    <div class="operator-row">
+        <button onclick="transform('T')" title="Transpose" data-help="T — Transpose: shifts all pitches by the number of semitones you select in the dropdown (−12 to +12).">T</button>
+        <button onclick="transform('I')" title="Invert" data-help="I — Inversion: reflects each melodic interval around the first pitch. Rising intervals become falling, and vice versa.">I</button>
+        <button onclick="transform('R')" title="Retrograde" data-help="R — Retrograde: reverses the order of all pitches, so the sequence is played backwards.">R</button>
+        <button onclick="transform('RI')" title="Retrograde-Invert" data-help="RI — Retrograde-Inversion: applies inversion first, then retrograde. One of the four classical serial transformations.">RI</button>
+    </div>
+    <div id="transposeControl" style="margin-top:10px; display:none;">
+        <label>Semitones:</label>
+        <select id="transposeValue" data-help="Number of semitones for transposition. Positive values transpose up, negative values down.">
+            <!-- generato via JS -->
+        </select>
+    </div>
+</div>
+
+<!-- rythm transformation  -->
+<div class="rythm_transformation-box">
+    <div class="label">Rythmic Transformations</div>
+    
+    <div class="operator2-row">
+        <button onclick="rythm_transform('r_Sp')" title="Shift +" data-help="S+ — Rhythmic shift forward: the duration pattern is cyclically advanced by two positions (the last two durations move to the front).">S+</button>
+        <button onclick="rythm_transform('r_Sm')" title="Shift -" data-help="S− — Rhythmic shift backward: the duration pattern is cyclically retarded by two positions (the first two durations move to the end).">S-</button>
+        <button onclick="rythm_transform('r_I')" title="Invert" data-help="I — Rhythmic inversion: durations are rank-ordered and each is replaced by its complementary rank, exchanging long and short values.">I</button>
+        <button onclick="rythm_transform('r_R')" title="Retrograde" data-help="R — Rhythmic retrograde: reverses the sequence of note durations, while keeping the pitches in their original order.">R</button>
+    </div>
+</div>
+
+<!-- Generated intervals panel -->
+<div id="generatedIntervalsPanel" style="display:none; margin-top:10px; text-align:left;">
+    <div style="font-size:12px; font-weight:bold; color:#555; margin-bottom:5px;">Generated intervals</div>
+    <div id="generatedIntervalsRow" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+</div>
+
+<div style="display:flex; gap:16px; align-items:stretch; flex-wrap:wrap; margin-top:10px;">
+
+  <!-- Box Playback -->
+  <div style="flex:3; border:2px solid #3498db; border-radius:10px; padding:8px 12px; background:#eaf4fb;">
+    <div style="font-size:11px; font-weight:bold; color:#2980b9; text-align:center; margin-bottom:6px; letter-spacing:0.05em;">PLAYBACK</div>
+    <div class="button-row" style="margin-top:0;">
+      <button onclick="playMusic()" data-help="Plays back the generated sequence using a piano soundfont at the BPM set by the slider (top right).">Play</button>
+      <button id="pauseBtn" onclick="pauseResumeMusic()" data-help="Pauses playback. Press again (Continue) to resume from the same position." style="background:#e67e22;">Pause</button>
+      <button onclick="stopMusic()" data-help="Stops playback immediately.">Stop</button>
+    </div>
+    <div style="margin-top:8px; text-align:center;">
+      <label style="font-size:13px; color:#2980b9; cursor:pointer;">
+        <input type="checkbox" id="loopCheck" data-help="When checked, playback restarts automatically at the end of the sequence.">
+        Loop
+      </label>
+    </div>
+  </div>
+
+  <!-- Box MIDI -->
+  <div style="flex:2; border:2px solid #27ae60; border-radius:10px; padding:8px 12px; background:#eafaf1;">
+    <div style="font-size:11px; font-weight:bold; color:#1e8449; text-align:center; margin-bottom:6px; letter-spacing:0.05em;">MIDI</div>
+    <div class="button-row" style="margin-top:0;">
+      <button onclick="downloadMidi()" data-help="Downloads the current sequence as a standard MIDI file, ready to import into any DAW or notation software." style="background:#27ae60;">Download MIDI</button>
+      <button onclick="document.getElementById('midiFileInput').click()"
+          data-help="Import a MIDI file. The sequence will be loaded and all transformations will be available."
+          title="Sequence type, tempo must match the imported file!"
+          style="background:#27ae60;">Import MIDI</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Input nascosto per il file -->
+<input type="file" id="midiFileInput" accept=".mid,.midi,.txt" multiple style="display:none"
+       onchange="importMidi(this)">
+
+<button class="reset-btn" onclick="resetApp()" data-help="Resets all parameters to their default values and clears the score. The page will reload.">Reset</button>
+
+<br>
+<label style="font-style: italic; display: block; text-align: right;">
+    R. Olmi & M. Bittelli
+    
+  </label>
+  <label style="font-style: italic; display: block; text-align: right; font-size:10px; color:#3498db">
+    Random Generation
+  </label>
+
+  
+<!-- ── Contextual help panel ── -->
+<div id="helpPanel"><em>Hover over or focus any control to see its description.</em></div>
+
+<div id="score"></div>
+
+</div>
+
+<script>
+
+// Cambia solo questa riga per passare da locale a produzione
+// const ENV = "local"   // cambia in "remote" per produzione
+const ENV = "remote"
+const BASE_URL = ENV === "local" ? "http://localhost:5002" : "https://serie.onrender.com"
+let serverAwake = ENV === "local"  // true in locale, false in remoto
+
+let midiData
+let part
+let synth
+let osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(document.getElementById("score"))
+let midiBlobGlobal
+let inversionActive = false
+
+const loadingOverlay = document.getElementById("loadingOverlay");
+
+osmd.setOptions({
+    drawPartNames: false,
+    drawPartAbbreviations: false
+})
+
+// popolamento select trasposizione
+const transposeSelect = document.getElementById("transposeValue")
+
+for(let i = -12; i <= 12; i++){
+    const opt = document.createElement("option")
+    opt.value = i
+    opt.textContent = i
+    transposeSelect.appendChild(opt)
+    transposeSelect.value = "0"
+}
+
+transposeSelect.addEventListener("change", () => {
+    const value = parseInt(transposeSelect.value)
+
+    sendTransform({
+        operation: "T",
+        value: value
+    })
+    document.getElementById("transposeControl").style.display = "none"
+})
+
+
+
+/* 🎚 BPM CONTROL */
+const bpmSlider = document.getElementById("bpmSlider")
+const bpmValue = document.getElementById("bpmValue")
+
+bpmSlider.addEventListener("input", function(){
+    bpmValue.textContent = this.value
+})
+
+document.getElementById("Repeated").addEventListener("change", function() {
+    const label = document.getElementById("octaveLabel")
+    label.textContent = this.checked ? "(with repetitions)" : "(without repetitions)"
+})
+
+function showLoading(){
+    document.getElementById("loadingOverlay").style.display = "flex";
+}
+
+function hideLoading(){
+    document.getElementById("loadingOverlay").style.display = "none";
+}
+
+
+function resetApp(){
+    document.getElementById("score").innerHTML = ""
+    midiData = null
+    midiBlobGlobal = null
+
+    document.getElementById("startNote").value = "0"
+    document.getElementById("kValue").value = "6"
+    document.getElementById("tempo").value = "constant"
+    document.getElementById("tempo").dispatchEvent(new Event("change"))
+
+    document.getElementById("Repeated").checked = false
+    document.getElementById("octaveLabel").textContent = "(without repetitions)"
+
+    document.getElementById("metronome").checked = false
+
+    document.getElementById("bpmSlider").value = 100
+    document.getElementById("bpmValue").textContent = "100"
+
+    document.getElementById("pTriplet").value = 0
+    document.getElementById("pTripletValue").textContent = "0"
+    document.getElementById("allowTriplets").checked = false;
+    document.getElementById("tripletOptions").style.display = "none";
+
+    updateTripletOptions();
+
+    location.reload()
+}
+
+// Il listener per tempo è gestito da updateConstantOptions sotto
+
+document.getElementById("tempo").addEventListener("change", updateConstantOptions)
+
+function updateConstantOptions(){
+    document.getElementById("constantOptions").style.display =
+        document.getElementById("tempo").value === "constant" ? "block" : "none"
+}
+
+document.getElementById("allowTriplets")
+    .addEventListener("change", updateTripletOptions);
+
+function updateTripletOptions(){
+    document.getElementById("tripletOptions").style.display =
+        document.getElementById("allowTriplets").checked
+            ? "block"
+            : "none";
+}
+
+updateConstantOptions();
+updateTripletOptions();
+
+async function checkServer() {
+    if (ENV === "local") return   // in locale non serve il check
+
+    try {
+        const res = await fetch(`${BASE_URL}/health`)
+        if (res.ok) {
+            serverAwake = true
+            document.getElementById("serverStatus").style.display = "none"
+        } else {
+            retryCheck()
+        }
+    } catch (e) {
+        retryCheck()
+    }
+}
+
+function retryCheck() {
+    setTimeout(checkServer, 3000)
+}
+
+checkServer()
+
+
+async function generateMusic(){
+
+if(!serverAwake){
+    alert("⏳ The server is still starting up");
+    return;
+}
+
+showLoading(); // 👈 AGGIUNTO
+loadingOverlay.innerText = "⏳ Generating MIDI..."; // 👈 QUI
+
+try {
+
+    const params = {
+        start_note: parseInt(document.getElementById("startNote").value),
+        k: parseInt(document.getElementById("kValue").value),
+        tempo: document.getElementById("tempo").value,
+        note_length: parseFloat(document.getElementById("noteLength").value),
+        repeated: document.getElementById("Repeated").checked,
+        // p_triplet: parseInt(document.getElementById("pTriplet").value) / 100
+        p_triplet: document.getElementById("allowTriplets").checked
+            ? parseInt(document.getElementById("pTriplet").value) / 100
+            : 0
+    }
+
+    const midiRes = await fetch(`${BASE_URL}/multidimensional`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(params)
+    })
+
+    const midiBlob = await midiRes.blob()
+    midiBlobGlobal = midiBlob
+    const midiBuffer = await midiBlob.arrayBuffer()
+    midiData = new Midi(midiBuffer)
+
+    const scoreRes = await fetch(`${BASE_URL}/score`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(params)
+    })
+
+    const scoreBlob = await scoreRes.blob()
+    const scoreUrl  = URL.createObjectURL(scoreBlob)
+
+    loadingOverlay.innerText = "🖊 Rendering notation...";
+
+    await osmd.load(scoreUrl)
+    osmd.render()
+
+    showGeneratedIntervals()
+
+    // Rimuove lo spazio vuoto superiore generato da OSMD
+    const svg = document.querySelector("#score svg")
+    if (svg) {
+        const bbox = svg.getBBox()
+        const offsetY = bbox.y
+        svg.style.marginTop = `-${Math.max(0, offsetY - 20)}px`
+    }
+
+} catch (err) {
+    console.error(err);
+    alert("Errore durante la generazione");
+} finally {
+    hideLoading(); // 👈 SEMPRE eseguito
+}
+}
+
+function toggleInversion(){
+    inversionActive = !inversionActive
+    generateMusic()
+}
+
+function highlightButton(type){
+    document.querySelectorAll(".button-row button")
+        .forEach(b => b.style.background = "#3498db")
+
+    event.target.style.background = "#9b59b6"
+}
+
+
+async function sendTransform(payload){
+
+    showLoading();
+    loadingOverlay.innerText = "🔄 Applying transformation..."; // 👈 QUI
+
+    try {
+
+        const midiRes = await fetch(`${BASE_URL}/transform`, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        })
+
+        const midiBlob = await midiRes.blob()
+        midiBlobGlobal = midiBlob
+
+        const midiBuffer = await midiBlob.arrayBuffer()
+        midiData = new Midi(midiBuffer)
+
+        const scoreRes = await fetch(`${BASE_URL}/score`, {
+            method: "POST"
+        })
+
+        const scoreBlob = await scoreRes.blob()
+        const scoreUrl = URL.createObjectURL(scoreBlob)
+
+        loadingOverlay.innerText = "🖊 Rendering notation..."; // 👈 QUI
+
+        await osmd.load(scoreUrl)
+        osmd.render()
+
+        showGeneratedIntervals()
+
+        // Rimuove lo spazio vuoto superiore generato da OSMD
+        const svg = document.querySelector("#score svg")
+        if (svg) {
+            const bbox = svg.getBBox()
+            const offsetY = bbox.y
+            svg.style.marginTop = `-${Math.max(0, offsetY - 20)}px`
+        }
+
+    } finally {
+        hideLoading();
+    }
+}
+
+async function transform(type){
+    if(!midiData){
+        alert("Generate music first!")
+        return
+    }
+
+    let payload = { operation: type }
+
+    // nascondi sempre il pannello semitoni; lo mostriamo solo per T
+    document.getElementById("transposeControl").style.display = "none"
+
+    if(type === "T"){
+        // reset a 0: così il change scatta sempre, anche se il valore non è cambiato
+        document.getElementById("transposeValue").value = "0"
+        document.getElementById("transposeControl").style.display = "block"
+        return
+    }
+
+    sendTransform(payload)
+}
+
+
+async function rythm_transform(type){
+    if(!midiData){
+        alert("Generate music first!")
+        return
+    }
+
+    let payload = { operation: type }
+
+    sendTransform(payload)
+}
+
+// ── Metronome ──────────────────────────────────────────────────────────────
+let metronomePart = null
+
+/**
+ * Genera un singolo click via Web Audio API pura (nessun Tone.js synth).
+ * @param {AudioContext} ctx
+ * @param {number} when  - AudioContext time (sec) in cui suonare
+ * @param {boolean} strong - true = beat 1 (accentato)
+ * @param {string} mode  - 'noise' | 'beep' | 'wood'
+ */
+function scheduleClick(ctx, when, strong, mode) {
+    const volSlider = document.getElementById('metronomeVolume')
+    const volFactor = volSlider ? (parseFloat(volSlider.value) / 100) : 1.0
+
+    const gainNode = ctx.createGain()
+    gainNode.connect(ctx.destination)
+
+    if (mode === 'noise') {
+        // Burst di rumore bianco breve — stile DAW
+        const bufSize = ctx.sampleRate * 0.025   // 25 ms
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+        const data = buf.getChannelData(0)
+        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1)
+        const src = ctx.createBufferSource()
+        src.buffer = buf
+
+        // Filtro passa-alto per togliere i bassi e renderlo più "snappy"
+        const hp = ctx.createBiquadFilter()
+        hp.type = 'highpass'
+        hp.frequency.value = strong ? 1200 : 2000
+        src.connect(hp)
+        hp.connect(gainNode)
+
+        gainNode.gain.setValueAtTime((strong ? 0.9 : 0.45) * volFactor, when)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, when + 0.025)
+        src.start(when)
+        src.stop(when + 0.03)
+
+    } else if (mode === 'beep') {
+        // Oscillatore sinusoidale a breve durata
+        const osc = ctx.createOscillator()
+        osc.type = 'sine'
+        osc.frequency.value = strong ? 1760 : 1047  // A6 / C6
+        osc.connect(gainNode)
+        gainNode.gain.setValueAtTime((strong ? 0.7 : 0.35) * volFactor, when)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, when + 0.05)
+        osc.start(when)
+        osc.stop(when + 0.055)
+
+    } else if (mode === 'wood') {
+        // Simulazione wood block: sine breve + piccolo filtro bandpass
+        const bufSize = ctx.sampleRate * 0.015
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+        const data = buf.getChannelData(0)
+        const freq = strong ? 900 : 1400
+        for (let i = 0; i < bufSize; i++) {
+            const t = i / ctx.sampleRate
+            data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 300)
+        }
+        const src = ctx.createBufferSource()
+        src.buffer = buf
+        src.connect(gainNode)
+        gainNode.gain.setValueAtTime((strong ? 1.0 : 0.55) * volFactor, when)
+        src.start(when)
+        src.stop(when + 0.02)
+    }
+}
+
+function startMetronome(currentBPM, numBeats) {
+    stopMetronome()
+
+    const beatDuration = 60 / currentBPM
+    const mode = document.getElementById('metronomeSound').value
+
+    const metEvents = []
+    for (let i = 0; i < numBeats; i++) {
+        metEvents.push({ time: i * beatDuration, beat: i })
+    }
+
+    metronomePart = new Tone.Part((time, val) => {
+        const ctx = Tone.getContext().rawContext
+        const strong = (val.beat % 4 === 0)
+        scheduleClick(ctx, time, strong, mode)
+    }, metEvents)
+
+    metronomePart.start(0)
+}
+
+function stopMetronome() {
+    if (metronomePart) {
+        metronomePart.stop()
+        metronomePart.dispose()
+        metronomePart = null
+    }
+}
+// ── Fine Metronome ──────────────────────────────────────────────────────────
+// ── Pause / Continue state ──────────────────────────────────────────────────
+let isPaused = false
+
+function pauseResumeMusic() {
+    const pauseBtn = document.getElementById('pauseBtn')
+    if (!isPaused) {
+        Tone.Transport.pause()
+        stopMetronome()
+        isPaused = true
+        pauseBtn.textContent = 'Continue'
+        pauseBtn.style.background = '#27ae60'
+    } else {
+        if (document.getElementById("metronome").checked) {
+            const currentBPM = parseInt(bpmSlider.value)
+            const beatsRaw = midiData.duration / 0.5
+            const numBeats = Math.ceil(beatsRaw / 4) * 4
+            startMetronome(currentBPM, numBeats)
+        }
+        Tone.Transport.start()
+        isPaused = false
+        pauseBtn.textContent = 'Pause'
+        pauseBtn.style.background = '#e67e22'
+    }
+}
+
+function resetPauseBtn() {
+    isPaused = false
+    const pauseBtn = document.getElementById('pauseBtn')
+    pauseBtn.textContent = 'Pause'
+    pauseBtn.style.background = '#e67e22'
+}
+// ── Fine Pause / Continue ───────────────────────────────────────────────────
+
+async function playMusic(){
+
+    if(!midiData) return
+
+    await Tone.start()
+    Tone.Transport.stop()
+    Tone.Transport.cancel()
+
+    const context = Tone.getContext().rawContext
+    const isSaxBb = document.getElementById("instrSaxBb").checked
+
+    // Carica i soundfont necessari
+    synth = await Soundfont.instrument(context, "acoustic_grand_piano")
+    let synthSax = null
+    if (isSaxBb) {
+        synthSax = await Soundfont.instrument(context, "tenor_sax")
+    }
+
+    // Trasposizione Bb: -2 semitoni (lo strumento Bb suona un tono sopra il notato)
+    function transposeName(noteName, semitones) {
+        const midi = Tone.Frequency(noteName).toMidi() + semitones
+        return Tone.Frequency(midi, "midi").toNote()
+    }
+
+    const baseBPM = 120
+    const currentBPM = parseInt(bpmSlider.value)
+    const scale = baseBPM / currentBPM
+    Tone.Transport.bpm.value = currentBPM
+
+    // midiData.duration NON include la pausa finale di fill_to_measure.
+    // Ricalcoliamo: fine ultima nota → arrotondiamo al prossimo multiplo di 4 beat.
+    // I tempi MIDI sono a 120 BPM (1 beat = 0.5s), quindi 4 beat = 2s.
+    const beatDuration = 0.5  // secondi per beat a 120 BPM
+    const beatsPerMeasure = 4
+
+    let lastNoteEnd = 0
+    midiData.tracks.forEach(track => {
+        track.notes.forEach(note => {
+            lastNoteEnd = Math.max(lastNoteEnd, note.time + note.duration)
+        })
+    })
+    // lastNoteEnd è in secondi a 120 BPM → convertiamo in beat
+    const lastBeat = lastNoteEnd / beatDuration
+    // arrotondiamo al prossimo multiplo di beatsPerMeasure
+    const totalBeats = Math.ceil(lastBeat / beatsPerMeasure) * beatsPerMeasure
+    // ritorniamo in secondi a 120 BPM, poi scaliamo col BPM attuale
+    const totalDuration = (totalBeats * beatDuration) * scale
+
+    let events = []
+    midiData.tracks.forEach(track => {
+        track.notes.forEach(note => {
+            // In Sax Bb mode: traspone di -2 semitoni per la compensazione Bb
+            const noteName = isSaxBb ? transposeName(note.name, -2) : note.name
+            events.push({
+                time: note.time * scale,
+                note: noteName,
+                duration: note.duration * scale,
+                velocity: note.velocity
+            })
+        })
+    })
+
+    const loopEnabled = document.getElementById("loopCheck").checked
+
+    part = new Tone.Part((time, value)=>{
+        // In Sax Bb mode usa tenor_sax, altrimenti piano
+        const player = (synthSax) ? synthSax : synth
+        player.play(value.note, time, {
+            duration: value.duration,
+            gain: value.velocity
+        })
+    }, events)
+
+    part.start(0)
+
+    if (loopEnabled) {
+        // Tone.Transport.loopEnd accetta secondi come stringa "Xs"
+        Tone.Transport.loop = true
+        Tone.Transport.loopStart = "0"
+        Tone.Transport.loopEnd = totalDuration + "s"
+    } else {
+        Tone.Transport.loop = false
+    }
+
+    if (document.getElementById("metronome").checked) {
+        const beatsRaw = midiData.duration / 0.5
+        const numBeats = Math.ceil(beatsRaw / 4) * 4
+        startMetronome(currentBPM, numBeats)
+    }
+
+    Tone.Transport.start()
+    resetPauseBtn()
+    pcPlay()
+}
+
+function stopMusic(){
+    Tone.Transport.stop()
+    Tone.Transport.cancel()
+    if(part) { part.stop(); part = null }
+    stopMetronome()
+    resetPauseBtn()
+    pcStop()
+}
+
+function downloadMidi(){
+    if(!midiBlobGlobal){
+        alert("Generate MIDI first!")
+        return
+    }
+
+    // ── MIDI ──
+    const urlMid = URL.createObjectURL(midiBlobGlobal)
+    const aMid = document.createElement("a")
+    aMid.href = urlMid
+    aMid.download = "k_random_music.mid"
+    document.body.appendChild(aMid)
+    aMid.click()
+    document.body.removeChild(aMid)
+    URL.revokeObjectURL(urlMid)
+
+    // ── TXT ──
+    const PC_LABELS = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']
+    const startNoteVal = parseInt(document.getElementById("startNote").value)
+    const startNote    = PC_LABELS[startNoteVal]
+    const K            = parseInt(document.getElementById("kValue").value)
+    const tempo        = document.getElementById("tempo").value
+    const repeated     = document.getElementById("Repeated").checked
+
+    let tempoDetail = tempo
+    if(tempo === "constant"){
+        const noteLen = document.getElementById("noteLength").value
+        const pTriplet = parseInt(document.getElementById("pTriplet").value)
+        const lenLabels = {"4":"whole","2":"half","1":"quarter","0.5":"eighth","0.25":"sixteenth"}
+        tempoDetail = `constant (${lenLabels[noteLen] || noteLen})` +
+                      (pTriplet > 0 ? `, triplet p=${pTriplet}%` : "")
+    }
+
+    // intervalli generati (già calcolati nel panel, li ricalcoliamo per sicurezza)
+    let intervalsStr = "—"
+    if(midiData){
+        const track = midiData.tracks.find(t => t.notes.length > 0)
+        if(track && track.notes.length >= 2){
+            const ivs = []
+            for(let i = 0; i < track.notes.length - 1; i++){
+                const v = track.notes[i+1].midi - track.notes[i].midi
+                ivs.push(v > 0 ? "+" + v : String(v))
+            }
+            intervalsStr = ivs.join("  ")
+        }
+    }
+
+    const content =
+`K-random — Generation Parameters
+==================================
+Start Note:    ${startNote}
+K (notes):     ${K}
+Tempo:         ${tempoDetail}
+Repeated:      ${repeated ? "yes" : "no"}
+Intervals:     ${intervalsStr}
+`
+    const blob = new Blob([content], { type: "text/plain" })
+    const urlTxt = URL.createObjectURL(blob)
+    const aTxt = document.createElement("a")
+    aTxt.href = urlTxt
+    aTxt.download = "k_random_music.txt"
+    document.body.appendChild(aTxt)
+    aTxt.click()
+    document.body.removeChild(aTxt)
+    URL.revokeObjectURL(urlTxt)
+
+    // ── GeCo TXT ──
+    const gecoContent =
+`K-random — Generation Parameters
+==================================
+Start Note:    ${startNote}
+Sequence:      Multidimensional ${intervalsStr}
+Tempo:         ${tempoDetail}
+Harmony:       none
+`
+    const gecoBlob = new Blob([gecoContent], { type: "text/plain" })
+    const urlGeco = URL.createObjectURL(gecoBlob)
+    const aGeco = document.createElement("a")
+    aGeco.href = urlGeco
+    aGeco.download = "k_random_GeCo.txt"
+    document.body.appendChild(aGeco)
+    aGeco.click()
+    document.body.removeChild(aGeco)
+    URL.revokeObjectURL(urlGeco)
+}
+
+async function importMidi(input) {
+    const allFiles = Array.from(input.files)
+    const midiFile = allFiles.find(f => f.name.endsWith('.mid') || f.name.endsWith('.midi'))
+    const txtFile  = allFiles.find(f => f.name.endsWith('.txt'))
+
+    input.value = ""
+
+    // Caso: solo TXT (formato GeCo)
+    if (!midiFile && txtFile) {
+        const txt = await txtFile.text()
+        await importGecoTxt(txt)
+        return
+    }
+
+    if (!midiFile) return
+
+    showLoading()
+    loadingOverlay.innerText = "📂 Importing MIDI..."
+
+    try {
+        // 1. Invia il MIDI al backend
+        const formData = new FormData()
+        formData.append("midi", midiFile)
+
+        const importRes = await fetch(`${BASE_URL}/import`, {
+            method: "POST",
+            body: formData
+        })
+
+        if (!importRes.ok) {
+            throw new Error("Import failed: " + importRes.statusText)
+        }
+
+        // 2. Aggiorna midiData e midiBlobGlobal
+        const midiBuffer = await midiFile.arrayBuffer()
+        midiData = new Midi(midiBuffer)
+        midiBlobGlobal = new Blob([midiBuffer], { type: "audio/midi" })
+
+        // 3. Se presente il TXT, ripristina i parametri UI
+        if (txtFile) {
+            const txt = await txtFile.text()
+            applyParamsFromTxt(txt)
+        }
+
+        // 4. Renderizza la notazione
+        const scoreBlob = await importRes.blob()
+        const scoreUrl  = URL.createObjectURL(scoreBlob)
+        loadingOverlay.innerText = "🖊 Rendering notation..."
+        await osmd.load(scoreUrl)
+        osmd.render()
+
+        // 5. Mostra gli intervalli (dal MIDI importato)
+        showGeneratedIntervals()
+
+        const svg = document.querySelector("#score svg")
+        if (svg) {
+            const bbox = svg.getBBox()
+            svg.style.marginTop = `-${Math.max(0, bbox.y - 20)}px`
+        }
+
+    } catch (err) {
+        console.error(err)
+        alert("Errore durante l'import: " + err.message)
+    } finally {
+        hideLoading()
+    }
+}
+
+// ── Import GeCo TXT (solo TXT, senza MIDI) ────────────────────────────────
+async function importGecoTxt(txt) {
+    // Struttura attesa:
+    //   riga 1: testo libero (ignora)
+    //   riga 2: testo libero (ignora)
+    //   riga 3: Start Note:    <nota>
+    //   riga 4: Sequence:      Multidimensional <intervallo1> <intervallo2> ...
+    //   riga 5: Tempo:         <valore>
+    //   riga 6: testo libero (ignora)
+
+    const lines = txt.split('\n').map(l => l.trim())
+
+    // Riga 4 (indice 3): deve contenere "Sequence:" e "Multidimensional"
+    const seqLine = lines[3] || ""
+    if (!seqLine.match(/^Sequence\s*:/i)) {
+        alert("Formato TXT non valido: la riga 4 deve iniziare con 'Sequence:'")
+        return
+    }
+    if (!seqLine.match(/Multidimensional/i)) {
+        alert("Importazione interrotta: la riga 4 deve contenere 'Sequence: Multidimensional'")
+        return
+    }
+
+    // Estrai gli intervalli dalla riga 4 (tutto dopo "Multidimensional")
+    const afterMulti = seqLine.replace(/^Sequence\s*:\s*/i, "").replace(/Multidimensional\s*/i, "").trim()
+    // Gli intervalli sono numeri con segno opzionale, separati da spazi
+    const intervalTokens = afterMulti.match(/[+-]?\d+/g)
+    if (!intervalTokens || intervalTokens.length === 0) {
+        alert("Formato TXT non valido: nessun intervallo trovato nella riga 4.")
+        return
+    }
+    const intervals = intervalTokens.map(Number)
+    const K = intervals.length + 1
+
+    // Riga 3 (indice 2): Start Note
+    const startLine = lines[2] || ""
+    const startMatch = startLine.match(/^Start Note\s*:\s*(.+)$/i)
+    if (!startMatch) {
+        alert("Formato TXT non valido: la riga 3 deve contenere 'Start Note:'")
+        return
+    }
+    const startNoteLabel = startMatch[1].trim()
+    const PC_LABELS = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']
+    const startPC = PC_LABELS.indexOf(startNoteLabel)
+    if (startPC === -1) {
+        alert(`Nota di partenza non riconosciuta: "${startNoteLabel}"`)
+        return
+    }
+
+    // Assegna ottava: C–F# → ottava 4, G–B → ottava 3 (come da logica app)
+    const startOctave = startPC <= 7 ? 4 : 3
+    let startMidi = 12 * (startOctave + 1) + startPC  // MIDI standard: C4 = 60
+
+    // Costruisci la sequenza di note MIDI
+    const midiNotes = [startMidi]
+    for (const iv of intervals) {
+        midiNotes.push(midiNotes[midiNotes.length - 1] + iv)
+    }
+
+    // Riga 5 (indice 4): Tempo
+    const tempoLine = lines[4] || ""
+    const tempoMatch = tempoLine.match(/^Tempo\s*:\s*(.+)$/i)
+    const tempoVal = tempoMatch ? tempoMatch[1].trim() : "constant (quarter)"
+
+    // Determina la durata delle note in beat (a 120 BPM, 1 beat = 0.5s)
+    let noteDurationBeats = 1  // default: quarter
+    const lenMap = { whole: 4, half: 2, quarter: 1, eighth: 0.5, sixteenth: 0.25 }
+    const lenMatch = tempoVal.match(/\((\w+)\)/)
+    if (lenMatch && lenMap[lenMatch[1]]) {
+        noteDurationBeats = lenMap[lenMatch[1]]
+    }
+    const noteDurationSec = noteDurationBeats * 0.5  // a 120 BPM
+
+    // Costruisci MIDI binario usando @tonejs/midi
+    const midi = new Midi()
+    midi.header.setTempo(120)
+    const track = midi.addTrack()
+    midiNotes.forEach((midiPitch, i) => {
+        track.addNote({
+            midi: midiPitch,
+            time: i * noteDurationSec,
+            duration: noteDurationSec * 0.9,
+            velocity: 0.8
+        })
+    })
+    const midiBytes = midi.toArray()
+    const midiBuffer = midiBytes.buffer
+    const midiBlob = new Blob([midiBuffer], { type: "audio/midi" })
+
+    // Aggiorna UI: Start Note e K
+    if (startPC >= 0) document.getElementById('startNote').value = startPC
+    document.getElementById('kValue').value = Math.min(Math.max(K, 2), 12)
+
+    // Applica Tempo alla UI
+    const tempoType = tempoVal.split(' ')[0]
+    const tempoSel = document.getElementById('tempo')
+    tempoSel.value = tempoType
+    tempoSel.dispatchEvent(new Event('change'))
+    if (tempoType === 'constant' && lenMatch) {
+        const lenLabels = { whole: "4", half: "2", quarter: "1", eighth: "0.5", sixteenth: "0.25" }
+        if (lenLabels[lenMatch[1]]) document.getElementById('noteLength').value = lenLabels[lenMatch[1]]
+    }
+
+    showLoading()
+    loadingOverlay.innerText = "📂 Importing GeCo TXT..."
+
+    try {
+        // Invia il MIDI costruito al backend per ottenere la notazione
+        midiData = new Midi(midiBuffer)
+        midiBlobGlobal = midiBlob
+
+        const formData = new FormData()
+        formData.append("midi", midiBlob, "geco_import.mid")
+
+        const importRes = await fetch(`${BASE_URL}/import`, {
+            method: "POST",
+            body: formData
+        })
+
+        if (!importRes.ok) {
+            throw new Error("Import failed: " + importRes.statusText)
+        }
+
+        const scoreBlob = await importRes.blob()
+        const scoreUrl  = URL.createObjectURL(scoreBlob)
+        loadingOverlay.innerText = "🖊 Rendering notation..."
+        await osmd.load(scoreUrl)
+        osmd.render()
+
+        showGeneratedIntervals()
+
+        const svg = document.querySelector("#score svg")
+        if (svg) {
+            const bbox = svg.getBBox()
+            svg.style.marginTop = `-${Math.max(0, bbox.y - 20)}px`
+        }
+
+    } catch (err) {
+        console.error(err)
+        alert("Errore durante l'import GeCo: " + err.message)
+    } finally {
+        hideLoading()
+    }
+}
+// ── Fine Import GeCo TXT ──────────────────────────────────────────────────
+
+function applyParamsFromTxt(txt) {
+    const line = key => {
+        const match = txt.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))
+        return match ? match[1].trim() : null
+    }
+
+    const PC_LABELS = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']
+
+    // Start Note
+    const startNote = line('Start Note')
+    if (startNote) {
+        const idx = PC_LABELS.indexOf(startNote)
+        if (idx !== -1) document.getElementById('startNote').value = idx
+    }
+
+    // K
+    const kVal = line('K \\(notes\\)')
+    if (kVal) {
+        const k = parseInt(kVal)
+        if (k >= 2 && k <= 12) document.getElementById('kValue').value = k
+    }
+
+    // Tempo
+    const tempoVal = line('Tempo')
+    if (tempoVal) {
+        const tempoType = tempoVal.split(' ')[0]
+        const tempoSel  = document.getElementById('tempo')
+        tempoSel.value  = tempoType
+        tempoSel.dispatchEvent(new Event('change'))
+
+        if (tempoType === 'constant') {
+            const lenLabels = {"whole":"4","half":"2","quarter":"1","eighth":"0.5","sixteenth":"0.25"}
+            const match = tempoVal.match(/\((\w+)\)/)
+            if (match && lenLabels[match[1]]) {
+                document.getElementById('noteLength').value = lenLabels[match[1]]
+            }
+        }
+    }
+
+    // Repeated
+    const repeatedVal = line('Repeated')
+    if (repeatedVal) {
+        document.getElementById('Repeated').checked = (repeatedVal === 'yes')
+        document.getElementById('octaveLabel').textContent =
+            repeatedVal === 'yes' ? '(with repetitions)' : '(without repetitions)'
+    }
+}
+
+
+// ── PITCH-CLASS CIRCLE ─────────────────────────────────────────────────────
+;(function(){
+    const PC_NAMES = ['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B']
+    const R  = 76
+    const RN = 10
+    const NS = 'http://www.w3.org/2000/svg'
+    const svg = document.getElementById('pcCircle')
+
+    function pcAngle(pc){ return (pc/12)*2*Math.PI - Math.PI/2 }
+    function polar(r,a){ return { x: r*Math.cos(a), y: r*Math.sin(a) } }
+
+    function mkEl(tag, attrs, parent){
+        const e = document.createElementNS(NS, tag)
+        for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v)
+        if(parent) parent.appendChild(e)
+        return e
+    }
+
+    ;(function build(){
+        svg.innerHTML = ''
+        const defs = mkEl('defs',{},svg)
+
+        const flt = mkEl('filter',{id:'pcGlow',x:'-80%',y:'-80%',width:'260%',height:'260%'},defs)
+        mkEl('feGaussianBlur',{stdDeviation:'3',result:'blur'},flt)
+        const fm = mkEl('feMerge',{},flt)
+        mkEl('feMergeNode',{in:'blur'},fm)
+        mkEl('feMergeNode',{in:'SourceGraphic'},fm)
+
+        const mk = mkEl('marker',{id:'pcArr',markerWidth:'6',markerHeight:'6',refX:'5',refY:'3',orient:'auto'},defs)
+        mkEl('path',{d:'M0,0 L0,6 L6,3 z',fill:'#c8b87a'},mk)
+
+        const gr = mkEl('radialGradient',{id:'pcBg',cx:'50%',cy:'50%',r:'50%'},defs)
+        mkEl('stop',{offset:'0%','stop-color':'#1a1a28'},gr)
+        mkEl('stop',{offset:'100%','stop-color':'#0a0a0f'},gr)
+        mkEl('circle',{r:105,fill:'#3498db',stroke:'#2980b9','stroke-width':'1'},svg)
+        mkEl('circle',{r:46,fill:'none',stroke:'#2980b9','stroke-width':'1','stroke-dasharray':'2 4'},svg)
+
+        for(let pc=0;pc<12;pc++){
+            const p = polar(R-RN-1,pcAngle(pc))
+            mkEl('line',{x1:0,y1:0,x2:p.x,y2:p.y,stroke:'#2980b9','stroke-width':'0.7'},svg)
+        }
+
+        mkEl('g',{id:'pcArcLayer'},svg)
+
+        for(let pc=0;pc<12;pc++){
+            const pos = polar(R,pcAngle(pc))
+            const lp  = polar(R+RN+8,pcAngle(pc))
+            const g = mkEl('g',{id:`pcNd-${pc}`,transform:`translate(${pos.x},${pos.y})`},svg)
+            mkEl('circle',{id:`pcGl-${pc}`,r:RN+4,fill:'none',stroke:'rgba(240,228,176,0.35)','stroke-width':'2',opacity:'0'},g)
+            mkEl('circle',{id:`pcCi-${pc}`,r:RN,fill:'#2471a3',stroke:'#aed6f1','stroke-width':'1'},g)
+            mkEl('text',{id:`pcLb-${pc}`,'text-anchor':'middle','dominant-baseline':'central',
+                fill:'#d6eaf8','font-family':'Arial,sans-serif','font-size':'7'},g).textContent = PC_NAMES[pc]
+            mkEl('text',{x:lp.x-pos.x,y:lp.y-pos.y,'text-anchor':'middle','dominant-baseline':'central',
+                fill:'#aed6f1','font-family':'Arial,sans-serif','font-size':'6'},g).textContent = pc
+        }
+    })()
+
+    const nodeState = new Array(12).fill('off')
+    function renderNode(pc){
+        const ci = document.getElementById(`pcCi-${pc}`)
+        const gl = document.getElementById(`pcGl-${pc}`)
+        const lb = document.getElementById(`pcLb-${pc}`)
+        const s  = nodeState[pc]
+        if(s==='active'){
+            ci.setAttribute('fill','#f0e4b0'); ci.setAttribute('stroke','#f0e4b0')
+            ci.setAttribute('filter','url(#pcGlow)'); gl.setAttribute('opacity','0.8')
+            lb.setAttribute('fill','#0a0a0f')
+        } else if(s==='visited'){
+            ci.setAttribute('fill','#3a3255'); ci.setAttribute('stroke','#4a4270')
+            ci.removeAttribute('filter'); gl.setAttribute('opacity','0')
+            lb.setAttribute('fill','#8878b8')
+        } else {
+            ci.setAttribute('fill','#2471a3'); ci.setAttribute('stroke','#aed6f1')
+            ci.removeAttribute('filter'); gl.setAttribute('opacity','0')
+            lb.setAttribute('fill','#d6eaf8')
+        }
+    }
+    function resetNodes(){ for(let pc=0;pc<12;pc++){nodeState[pc]='off';renderNode(pc)} }
+
+    const arcMap = {}
+    function resetArcs(){
+        const l=document.getElementById('pcArcLayer'); if(l) l.innerHTML=''
+        for(const k in arcMap) delete arcMap[k]
+    }
+    function drawArc(from,to){
+        if(from===to) return
+        const key=`${from}-${to}`
+        const layer=document.getElementById('pcArcLayer')
+        if(arcMap[key]){
+            arcMap[key].count++
+            arcMap[key].el.setAttribute('stroke-width',String(Math.min(1.2+arcMap[key].count*0.7,5)))
+            return
+        }
+        const A=polar(R,pcAngle(from)), B=polar(R,pcAngle(to))
+        const mx=(A.x+B.x)/2, my=(A.y+B.y)/2
+        const dx=B.x-A.x, dy=B.y-A.y, len=Math.sqrt(dx*dx+dy*dy)||1
+        const side=from<to?1:-1, bulge=22*side
+        const cx=mx-(dy/len)*bulge, cy=my+(dx/len)*bulge
+        const stx=cx-A.x,sty=cy-A.y,stl=Math.sqrt(stx*stx+sty*sty)||1
+        const sx=A.x+(stx/stl)*(RN+1), sy=A.y+(sty/stl)*(RN+1)
+        const etx=B.x-cx,ety=B.y-cy,etl=Math.sqrt(etx*etx+ety*ety)||1
+        const ex=B.x-(etx/etl)*(RN+3), ey=B.y-(ety/etl)*(RN+3)
+        const pathEl=mkEl('path',{
+            d:`M${sx},${sy} Q${cx},${cy} ${ex},${ey}`,
+            fill:'none',stroke:'#c8b87a','stroke-width':'1.2',
+            'stroke-opacity':'0.6','stroke-linecap':'round','marker-end':'url(#pcArr)'
+        },layer)
+        arcMap[key]={count:1,el:pathEl}
+    }
+
+    const activePCs = new Set()
+    let lastPC=null, firstPC=null, firstArcEl=null, lastArcEl=null
+
+    function activatePC(pc){
+        if(lastPC!==null && lastPC!==pc){
+            const key=`${lastPC}-${pc}`, wasNew=!arcMap[key]
+            drawArc(lastPC,pc)
+            if(wasNew){
+                const el=arcMap[key].el
+                if(!firstArcEl){
+                    firstArcEl=el
+                    el.setAttribute('stroke','#ffffff')
+                    el.setAttribute('stroke-opacity','0.9')
+                    el.setAttribute('stroke-width','2')
+                }
+                lastArcEl=el
+            }
+        }
+        if(firstPC===null) firstPC=pc
+        lastPC=pc
+        activePCs.add(pc)
+        nodeState[pc]='active'
+        renderNode(pc)
+    }
+    function deactivatePC(pc){
+        if(pc===firstPC) return
+        activePCs.delete(pc)
+        nodeState[pc]='visited'
+        renderNode(pc)
+    }
+    function highlightEnd(){
+        if(lastPC!==null && lastPC!==firstPC){nodeState[lastPC]='active';renderNode(lastPC)}
+        if(lastArcEl && lastArcEl!==firstArcEl){
+            lastArcEl.setAttribute('stroke','#ffffff')
+            lastArcEl.setAttribute('stroke-opacity','0.9')
+            lastArcEl.setAttribute('stroke-width',String(Math.max(parseFloat(lastArcEl.getAttribute('stroke-width')||1.2),2)))
+        }
+    }
+
+    let pcTimers=[], pcPlaying=false
+
+    window.pcPlay = function(){
+        if(!midiData) return
+        pcStop()
+        resetNodes(); resetArcs()
+        lastPC=null; firstPC=null; firstArcEl=null; lastArcEl=null; activePCs.clear()
+
+        const track = midiData.tracks.find(t=>t.notes.length>0)
+        if(!track) return
+
+        const firstNote = track.notes[0].midi % 12
+        firstPC = firstNote
+        activatePC(firstNote)
+
+        const scale = 120 / parseInt(bpmSlider.value)
+        pcPlaying = true
+
+        track.notes.forEach(note => {
+            const pc    = note.midi % 12
+            const onMs  = note.time  * scale * 1000
+            const offMs = (note.time + Math.max(note.duration,0.05)) * scale * 1000
+            pcTimers.push(setTimeout(()=>{ if(pcPlaying) activatePC(pc)   }, onMs))
+            pcTimers.push(setTimeout(()=>{ if(pcPlaying) deactivatePC(pc) }, offMs))
+        })
+
+        const endMs = track.notes.reduce((mx,n)=>Math.max(mx,(n.time+n.duration)*scale*1000),0) + 400
+        pcTimers.push(setTimeout(()=>{ pcPlaying=false; highlightEnd() }, endMs))
+    }
+
+    window.pcStop = function(){
+        pcPlaying=false
+        pcTimers.forEach(t=>clearTimeout(t))
+        pcTimers=[]
+    }
+
+    window.pcReset = function(){
+        pcStop(); resetNodes(); resetArcs()
+        lastPC=null; firstPC=null; firstArcEl=null; lastArcEl=null; activePCs.clear()
+    }
+
+})()
+// ── END PITCH-CLASS CIRCLE ─────────────────────────────────────────────────
+
+// ── Generated intervals display ────────────────────────────────────
+function showGeneratedIntervals() {
+    if (!midiData) return
+
+    // Raccoglie tutte le note dal MIDI (primo track con note)
+    let allNotes = []
+    for (const track of midiData.tracks) {
+        if (track.notes.length > 0) {
+            allNotes = track.notes
+            break
+        }
+    }
+    if (allNotes.length < 2) return
+
+    // Calcola intervalli in semitoni tra note consecutive
+    const intervals = []
+    for (let i = 0; i < allNotes.length - 1; i++) {
+        intervals.push(allNotes[i + 1].midi - allNotes[i].midi)
+    }
+
+    // Popola il panel
+    const row = document.getElementById("generatedIntervalsRow")
+    row.innerHTML = ""
+    intervals.forEach(v => {
+        const box = document.createElement("span")
+        box.className = "gen-interval-box"
+        box.textContent = v > 0 ? "+" + v : String(v)
+        row.appendChild(box)
+    })
+
+    document.getElementById("generatedIntervalsPanel").style.display = "block"
+}
+// ───────────────────────────────────────────────────────────────────
+
+// ── Contextual help panel ──────────────────────────────────────────
+const helpPanel = document.getElementById("helpPanel")
+const helpDefault = "<em>Hover over or focus any control to see its description.</em>"
+
+function showHelp(el) {
+    const msg = el.dataset.help || el.closest("[data-help]")?.dataset.help
+    if (msg) helpPanel.innerHTML = msg
+}
+
+function clearHelp() {
+    helpPanel.innerHTML = helpDefault
+}
+
+document.querySelectorAll("[data-help]").forEach(el => {
+    el.addEventListener("mouseover",  e => { showHelp(e.currentTarget); e.stopPropagation() })
+    el.addEventListener("focusin",    e => { showHelp(e.currentTarget); e.stopPropagation() })
+    el.addEventListener("mouseout",   clearHelp)
+    el.addEventListener("focusout",   clearHelp)
+})
+// ───────────────────────────────────────────────────────────────────
+
+</script>
+
+</body>
+</html>

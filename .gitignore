@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Capacitor (rigenerato automaticamente da "npx cap sync")
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+
+# Android / Gradle
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+
+# Keystore di release (NON committare mai la chiave di firma release!)
+*.keystore
+*.jks
+!debug.keystore
+
+# macOS
+.DS_Store
