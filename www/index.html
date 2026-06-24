@@ -729,6 +729,8 @@ Repeated
 
 <script>
 
+const IS_CAPACITOR = !!window.Capacitor?.isNativePlatform?.()
+
 // Cambia solo questa riga per passare da locale a produzione
 // const ENV = "local"   // cambia in "remote" per produzione
 const ENV = "remote"
@@ -1265,17 +1267,6 @@ function downloadMidi(){
         return
     }
 
-    // ── MIDI ──
-    const urlMid = URL.createObjectURL(midiBlobGlobal)
-    const aMid = document.createElement("a")
-    aMid.href = urlMid
-    aMid.download = "k_random_music.mid"
-    document.body.appendChild(aMid)
-    aMid.click()
-    document.body.removeChild(aMid)
-    URL.revokeObjectURL(urlMid)
-
-    // ── TXT ──
     const PC_LABELS = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']
     const startNoteVal = parseInt(document.getElementById("startNote").value)
     const startNote    = PC_LABELS[startNoteVal]
@@ -1285,14 +1276,13 @@ function downloadMidi(){
 
     let tempoDetail = tempo
     if(tempo === "constant"){
-        const noteLen = document.getElementById("noteLength").value
+        const noteLen  = document.getElementById("noteLength").value
         const pTriplet = parseInt(document.getElementById("pTriplet").value)
         const lenLabels = {"4":"whole","2":"half","1":"quarter","0.5":"eighth","0.25":"sixteenth"}
         tempoDetail = `constant (${lenLabels[noteLen] || noteLen})` +
                       (pTriplet > 0 ? `, triplet p=${pTriplet}%` : "")
     }
 
-    // intervalli generati (già calcolati nel panel, li ricalcoliamo per sicurezza)
     let intervalsStr = "—"
     if(midiData){
         const track = midiData.tracks.find(t => t.notes.length > 0)
@@ -1306,7 +1296,7 @@ function downloadMidi(){
         }
     }
 
-    const content =
+    const txtContent =
 `K-random — Generation Parameters
 ==================================
 Start Note:    ${startNote}
@@ -1315,34 +1305,49 @@ Tempo:         ${tempoDetail}
 Repeated:      ${repeated ? "yes" : "no"}
 Intervals:     ${intervalsStr}
 `
-    const blob = new Blob([content], { type: "text/plain" })
-    const urlTxt = URL.createObjectURL(blob)
-    const aTxt = document.createElement("a")
-    aTxt.href = urlTxt
-    aTxt.download = "k_random_music.txt"
-    document.body.appendChild(aTxt)
-    aTxt.click()
-    document.body.removeChild(aTxt)
-    URL.revokeObjectURL(urlTxt)
 
-    // ── GeCo TXT ──
-    const gecoContent =
-`K-random — Generation Parameters
-==================================
-Start Note:    ${startNote}
-Sequence:      Multidimensional ${intervalsStr}
-Tempo:         ${tempoDetail}
-Harmony:       none
-`
-    const gecoBlob = new Blob([gecoContent], { type: "text/plain" })
-    const urlGeco = URL.createObjectURL(gecoBlob)
-    const aGeco = document.createElement("a")
-    aGeco.href = urlGeco
-    aGeco.download = "k_random_GeCo.txt"
-    document.body.appendChild(aGeco)
-    aGeco.click()
-    document.body.removeChild(aGeco)
-    URL.revokeObjectURL(urlGeco)
+    if(IS_CAPACITOR){
+        saveAndShareOnAndroid(midiBlobGlobal, txtContent)
+    } else {
+        browserDownload(midiBlobGlobal, "k_random_music.mid")
+        browserDownload(new Blob([txtContent], {type:"text/plain"}), "k_random_music.txt")
+    }
+}
+
+function browserDownload(blob, filename){
+    const url = URL.createObjectURL(blob)
+    const a   = document.createElement("a")
+    a.href = url; a.download = filename
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a); URL.revokeObjectURL(url)
+}
+
+async function saveAndShareOnAndroid(midiBlob, txtContent){
+    const { Filesystem, Share } = Capacitor.Plugins
+
+    const midiBase64 = await blobToBase64(midiBlob)
+    const txtBase64  = btoa(unescape(encodeURIComponent(txtContent)))
+
+    await Filesystem.writeFile({ path: "k_random_music.mid", data: midiBase64,  directory: "CACHE" })
+    await Filesystem.writeFile({ path: "k_random_music.txt", data: txtBase64,   directory: "CACHE" })
+
+    const { uri: uriMid } = await Filesystem.getUri({ path: "k_random_music.mid", directory: "CACHE" })
+    const { uri: uriTxt } = await Filesystem.getUri({ path: "k_random_music.txt", directory: "CACHE" })
+
+    await Share.share({
+        title:       "K-random export",
+        dialogTitle: "Save or open files",
+        files:       [uriMid, uriTxt]
+    })
+}
+
+function blobToBase64(blob){
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result.split(",")[1])
+        reader.onerror  = reject
+        reader.readAsDataURL(blob)
+    })
 }
 
 async function importMidi(input) {
