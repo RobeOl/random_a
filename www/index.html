@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-random: a GeCo-Tool add-on</title>
 <title>K-random: a GeCo-Tool add-on</title>
 
 <script src="https://unpkg.com/tone"></script>
@@ -26,11 +28,13 @@
     }
 
 .container{
-    width:1200px;
+    width:100%;
+    max-width:1200px;
     margin:30px auto;
     background:white;
     padding:25px;
     border-radius:10px;
+    box-sizing:border-box;
 }
 
 button{
@@ -78,7 +82,7 @@ button:hover{
 
 </style>
 
-<style>
+<!-- <style>
     .back-btn {
     position: fixed;
     top: 5px;
@@ -92,7 +96,7 @@ button:hover{
     z-index: 10000;
 }
     .back-btn:hover { background: #1a6a9a; }
-</style>
+</style> -->
 
 <style>
 /* ── Pitch-Class Circle ── */
@@ -474,7 +478,7 @@ button:hover{
 <div class="container" style="position:relative;">
 
     <!-- <a class="back-btn" href="#" onclick="window.close(); return false;">← Back to GeCo-Tools</a> -->
-    <a class="back-btn" href="GeCo-Tools.html">← Back to GeCo-Tools</a>
+    <!-- <a class="back-btn" href="GeCo-Tools.html">← Back to GeCo-Tools</a> -->
 
     <!-- Pitch-Class Circle -->
     <div id="pcCircleWrap">
